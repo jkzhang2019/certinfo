@@ -16,6 +16,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa, ec
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 
+from cryptography.hazmat.primitives import hashes
+
+
 
 def get_cert_chain(host, port):
     """获取SSL证书链"""
@@ -148,10 +151,24 @@ def load_trusted_certs(args):
 
 def print_cert_info(cert, index):
     """打印证书详细信息"""
+    # 新增指纹打印部分
+    def format_fingerprint(fingerprint_bytes):
+        """格式化指纹为冒号分隔的十六进制字符串"""
+        return ":".join(f"{b:02x}" for b in fingerprint_bytes)
+    
+
     print(f"\n{'='*30} 证书 {index} {'='*30}")
     print(f"主  体: {cert.subject.rfc4514_string()}")
     print(f"颁发者: {cert.issuer.rfc4514_string()}")
     print(f"序列号: {hex(cert.serial_number)}")
+
+    # SHA-1 指纹
+    sha1_fp = cert.fingerprint(hashes.SHA1())
+    print(f"SHA-1 指纹: {format_fingerprint(sha1_fp)}")
+    
+    # SHA-256 指纹
+    sha256_fp = cert.fingerprint(hashes.SHA256())
+    print(f"SHA-256 指纹: {format_fingerprint(sha256_fp)}")
     print(f"有效期从: {cert.not_valid_before_utc}")
     print(f"有效期至: {cert.not_valid_after_utc}")
     print(f"签名算法: {cert.signature_algorithm_oid._name}")
