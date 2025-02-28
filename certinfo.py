@@ -151,7 +151,33 @@ def load_trusted_certs(args):
 
 def print_cert_info(cert, index):
     """打印证书详细信息"""
-    # 新增指纹打印部分
+    # 指纹打印部分,提供两个函数，一个带压缩，一个不带
+    def format_compressed_fingerprint(fingerprint_bytes, head=6, tail=1):
+        """
+        格式化指纹为带省略号的压缩格式
+        :param fingerprint_bytes: 原始指纹字节
+        :param head: 保留前导字节数
+        :param tail: 保留尾部字节数
+        :return: 格式化后的字符串
+        """
+        # 转换为十六进制列表
+        hex_parts = [f"{b:02x}" for b in fingerprint_bytes]
+        
+        # 分割为前段和尾段
+        head_part = hex_parts[:head]
+        tail_part = hex_parts[-tail:] if tail > 0 else []
+        
+        # 构建显示部分
+        display_parts = []
+        if head_part:
+            display_parts.append(":".join(head_part))
+        if len(hex_parts) > (head + tail):
+            display_parts.append("...")
+        if tail_part:
+            display_parts.append(":".join(tail_part))
+        
+        return ":".join(display_parts)
+
     def format_fingerprint(fingerprint_bytes):
         """格式化指纹为冒号分隔的十六进制字符串"""
         return ":".join(f"{b:02x}" for b in fingerprint_bytes)
@@ -164,11 +190,11 @@ def print_cert_info(cert, index):
 
     # SHA-1 指纹
     sha1_fp = cert.fingerprint(hashes.SHA1())
-    print(f"SHA-1 指纹: {format_fingerprint(sha1_fp)}")
+    print(f"SHA-1 指纹: {format_compressed_fingerprint(sha1_fp)}")
     
     # SHA-256 指纹
     sha256_fp = cert.fingerprint(hashes.SHA256())
-    print(f"SHA-256 指纹: {format_fingerprint(sha256_fp)}")
+    print(f"SHA-256 指纹: {format_compressed_fingerprint(sha256_fp)}")
     print(f"有效期从: {cert.not_valid_before_utc}")
     print(f"有效期至: {cert.not_valid_after_utc}")
     print(f"签名算法: {cert.signature_algorithm_oid._name}")
@@ -224,20 +250,6 @@ def verify_signature(child, parent):
         print(f"签名验证错误: {e}")
         return False
 
-def verify_signature_removed(child, parent):
-    """验证证书签名"""
-    try:
-        parent_pubkey = parent.public_key()
-        parent_pubkey.verify(
-            child.signature,
-            child.tbs_certificate_bytes,
-            padding.PKCS1v15(),
-            child.signature_hash_algorithm,
-        )
-        return True
-    except Exception as e:
-        print(f"签名验证错误: {e}")
-        return False
 
 def main():
     parser = argparse.ArgumentParser(description='SSL证书链验证工具')
